@@ -19,4 +19,4 @@ RUN pip install -r requirements.txt
 
 EXPOSE 3000
 
-CMD ["python" , "-m", "flask", "--app", "main" ,"run"]
+CMD [."python" , "-m", "flask", "--app", "main" ,"run", "--host=0.0.0.0"]
