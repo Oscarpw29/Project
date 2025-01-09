@@ -5,7 +5,12 @@ ENV DEBIAN_frontend=noninteractive
 ARG DEBIAN_FRONTEND=noninteractive
 
 # The /app directory should act as the main application directory
-RUN apt-get update && apt-get install -y python3.8.9 python3-pip
+RUN apt-get update && apt-get install -y python3.9 python3.9-dev python3-pip
+
+FROM python:3.9 as build
+
+RUN pip install --upgrade pip
+
 
 COPY . .
 COPY requirements.txt .
