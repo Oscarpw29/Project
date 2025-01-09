@@ -1,23 +1,11 @@
 # Start your image with a node base image
-FROM node:18-alpine
+FROM ubuntu:20.04
 
 # The /app directory should act as the main application directory
-WORKDIR /app
+RUN apt-get update && apt-get install -y python3.9 python3.9-dev
 
-# Copy the app package and package-lock.json file
-COPY package*.json ./
+COPY . .
 
-# Copy local directories to the current local directory of our docker image (/app)
-COPY ./src ./src
-COPY ./public ./public
+RUN pip install -r requirements.txt
 
-# Install node packages, install serve, build the app, and remove dependencies at the end
-RUN npm install \
-    && npm install -g serve \
-    && npm run build \
-    && rm -fr node_modules
-
-EXPOSE 3000
-
-# Start the app using serve command
-CMD [ "serve", "-s", "build" ]
+CMD ["python]
