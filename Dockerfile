@@ -2,7 +2,7 @@
 FROM ubuntu:20.04
 
 # The /app directory should act as the main application directory
-RUN apt-get update && apt-get install -y python3.9 python3.9-dev
+RUN apt-get update && apt-get install -y python3.9 python3.9-dev python3-pip
 
 COPY . .
 COPY requirements.txt .
