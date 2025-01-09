@@ -1,6 +1,8 @@
 # Start your image with a node base image
 FROM ubuntu:20.04
 
+ENV TZ Europe/London
+
 # The /app directory should act as the main application directory
 RUN apt-get update && apt-get install -y python3.9 python3.9-dev python3-pip
 
