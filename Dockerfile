@@ -19,4 +19,4 @@ RUN pip install -r requirements.txt
 
 EXPOSE 3000
 
-RUN flask --app main run
+CMD ["python" , "-m", "flask", "--app", "main" ,"run"]
