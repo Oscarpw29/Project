@@ -3,20 +3,22 @@ import sqlite3
 import bcrypt
 import gunicorn
 
-
 from flask import request, flash, session
 from werkzeug.exceptions import abort
 
 app = flask.Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
 
+
 def clear_flashes():
     session.pop('flashes', None)
+
 
 @app.route('/')
 def index():
     clear_flashes()
     return flask.render_template('index.html')
+
 
 @app.route('/create', methods=['GET', 'POST'])
 def create():
@@ -30,6 +32,7 @@ def create():
             print(hashed)
     return flask.render_template('create.html')
 
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -40,6 +43,7 @@ def login():
         else:
             print(username, password)
     return flask.render_template('login.html')
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
