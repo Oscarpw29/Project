@@ -19,7 +19,4 @@ RUN pip install -r requirements.txt
 
 EXPOSE 3000
 
-docker run -d -p 5000:5000 python-docker
-
-
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
