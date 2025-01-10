@@ -38,3 +38,6 @@ def login():
         else:
             print(username, password)
     return flask.render_template('login.html')
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0')
