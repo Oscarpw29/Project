@@ -44,6 +44,18 @@ def login():
             print(username, password)
     return flask.render_template('login.html')
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        email = request.form['email']
+        username = request.form['username']
+        password = request.form['password']
+        if not email or not username or not password:
+            flash('Email and username and password are required.')
+        else:
+            print(email, username, password)
+    return flask.render_template('register.html')
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
