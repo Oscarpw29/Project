@@ -9,6 +9,8 @@ from werkzeug.exceptions import abort
 app = flask.Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
 
+test_pass = 'pass'
+test_user = 'test'
 
 def clear_flashes():
     session.pop('flashes', None)
@@ -41,7 +43,11 @@ def login():
         if not username or not password:
             flash('Username and password are required.')
         else:
-            print(username, password)
+            if username == 'test' and password == 'pass':
+                print('Login successful')
+                return home(username)
+            else:
+                flash('Invalid username or password.')
     return flask.render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -55,6 +61,10 @@ def register():
         else:
             print(email, username, password)
     return flask.render_template('register.html')
+
+@app.route('/home')
+def home(user):
+    return flask.render_template('home.html', variable=user)
 
 
 if __name__ == '__main__':
