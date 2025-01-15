@@ -2,6 +2,8 @@ import flask
 import sqlite3
 import bcrypt
 import gunicorn
+import socket
+from threading import Thread
 
 from flask import request, flash, session
 from werkzeug.exceptions import abort
@@ -45,7 +47,7 @@ def login():
         else:
             if username == 'test' and password == 'pass':
                 print('Login successful')
-                return home(username)
+                return (home(),flask.url_for('home'))
             else:
                 flash('Invalid username or password.')
     return flask.render_template('login.html')
@@ -63,8 +65,11 @@ def register():
     return flask.render_template('register.html')
 
 @app.route('/home')
-def home(user):
-    return flask.render_template('home.html', variable=user)
+def home():
+    try:
+        return flask.render_template('home.html', variable=username, title='Home')
+    except Exception as e:
+        return flask.render_template('login.html', variable=username, title='Login')
 
 
 if __name__ == '__main__':
