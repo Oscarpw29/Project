@@ -3,6 +3,7 @@ import random
 from threading import Thread
 from datetime import datetime
 from colorama import Fore, init, Back
+import zlib
 
 # init colours
 
@@ -35,12 +36,15 @@ print("[*] Connected.")
 
 # prompt client name
 name = input("Enter your name: ")
-recipient = input("Enter your recipient: ")
+recipientinp = input("Enter recipient")
+recipient = zlib.adler32(recipientinp.encode())
 
 def listen_for_message():
     while True:
         message = s.recv(1024).decode()
-        print("\n" + message)
+        print(f"\n {zlib.adler32(name.encode())} {message[:9]}")
+        if message[:9] == str(zlib.adler32(name.encode())):
+            print("\n" + message)
 
 
 # Make a thread that listens for messages to this client & print them
@@ -59,7 +63,7 @@ while True:
     # Add the datetime, name & colour of the sender
     date_now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
-    to_send = f"{client_color}[{date_now}] {name}{separator_token}{to_send}{Fore.RESET}"
+    to_send = f"{recipient} {client_color}[{date_now}] {name}{separator_token}{to_send}{Fore.RESET}"
     # send the message
     s.send(to_send.encode())
 
