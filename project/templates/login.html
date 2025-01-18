@@ -18,6 +18,10 @@
                         <div class="form-group">
                           <input type="password" name="password" placeholder="Password" class="form-control" value="{{ request.form['password'] }}">
                         </div>
+                        <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                                <label class="form-check-label" for="remember">Remember Me</label>
+                        </div>
 
                         <div class="form-group">
                           {% with messages = get_flashed_messages(with_categories=True) %}
@@ -33,7 +37,7 @@
 
                         <div class="form-group">
                             <button type="submit" class="btn btn-primary ">Login</button>
-                            <a href="{{ url_for('register')}}" class="btn btn-primary float-right">Register</a>
+                            <a href="{{ url_for('auth.register')}}" class="btn btn-primary float-right">Register</a>
                         </div>
                       </form>
                     </div>

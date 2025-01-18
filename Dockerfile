@@ -12,7 +12,7 @@ FROM python:3.9 as build
 RUN pip install --upgrade pip
 
 
-COPY . .
+COPY .. .
 COPY requirements.txt .
 
 RUN pip install -r requirements.txt
