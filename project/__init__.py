@@ -1,9 +1,14 @@
 from flask import Flask
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
+from flask_socketio import SocketIO
 
 db = SQLAlchemy()
 
+SERVER_HOST = "127.0.0.1"
+SERVER_PORT = 5002
+
+socketio = SocketIO()
 
 def create_app():
     app = Flask(__name__)
@@ -30,5 +35,11 @@ def create_app():
     # blueprint for main routes in app
     from .main import main as main_blueprint
     app.register_blueprint(main_blueprint)
+
+    socketio.init_app(app)
+
+    print("socketio initialized")
+
+    from . import sockets
 
     return app

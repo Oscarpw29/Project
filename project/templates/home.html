@@ -7,8 +7,20 @@
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-body text-center">
-                        <h1>Welcome, {{ name }}!</h1>
+                        <h1>Welcome, {{ current_user.username }}!</h1>
                         <p>You are now logged in.</p>
+                        <form action="{{ url_for('main.chat') }}" method="post">
+                            <input type="text" name="recipient" placeholder="Enter recipient username:">
+                            <button type="submit">Chat</button>
+                        </form>
+
+                        <form id="message-form">
+                            <input type="text" id="message-input" placeholder="Type your message">
+                            <button type="submit">Send</button>
+                        </form>
+
+                        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+                        <script src="{{ url_for('static', filename='js/script.js') }}"></script>
                     </div>
                 </div>
             </div>
