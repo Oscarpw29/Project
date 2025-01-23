@@ -1,5 +1,6 @@
 from flask_login import current_user, UserMixin
 from . import db
+from datetime import datetime
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -12,3 +13,15 @@ class User(UserMixin, db.Model):
     last_seen = db.Column(db.DateTime)
     bio = db.Column(db.String(255))
 
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    message = db.Column(db.String(140))
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+
+    sender = db.relationship('User', foreign_keys=[sender_id])
+    recipient = db.relationship('User', foreign_keys=[recipient_id])
+
+    def __repr__(self):
+        return '<Message %r>' % self.message

@@ -2,29 +2,38 @@
 
 {% block content %}
 
-<div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h1>Welcome, {{ current_user.username }}!</h1>
-                        <p>You are now logged in.</p>
-                        <form action="{{ url_for('main.chat') }}" method="post">
-                            <input type="text" name="recipient" placeholder="Enter recipient username:">
-                            <button type="submit">Chat</button>
-                        </form>
+ <h1>Chat</h1>
 
-                        <form id="message-form">
-                            <input type="text" id="message-input" placeholder="Type your message">
-                            <button type="submit">Send</button>
-                        </form>
+    <form id="message-form">
+        <input type="text" id="recipient_input" placeholder="Enter recipient username">
+        <button type="submit">Start Chat</button>
+    </form>
 
-                        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-                        <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-                    </div>
-                </div>
-            </div>
-        </div>
-</div>
+    <div id="chat-messages"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const messageForm = document.getElementById('message-form');
+        const recipientInput = document.getElementById('recipient_input');
+        const chatMessages = document.getElementById('chat-messages');
+        const username = '{{ user.username }}';
+
+        messageForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const recipient = recipientInput.value;
+            if (recipient) {
+                // Redirect to the chat page with the recipient username
+                window.location.href = '/chat/' + recipient;
+            }
+        });
+
+        socket.on('message', (data) => {
+            const messageItem = document.createElement('li');
+            messageItem.textContent = `${data.sender}: ${data.data}`;
+            chatMessages.appendChild(messageItem);
+        });
+    </script>
+
 
 {% endblock %}
