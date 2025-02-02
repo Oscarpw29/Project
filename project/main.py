@@ -23,15 +23,16 @@ def chat(recipient_username):
     if not recipient:
         flash('Recipient not found.', 'error')
         return redirect(url_for('main.home'))
-
+    message = request.form.get('message')
     if request.method == 'POST':
         message = request.form.get('message')
+        print('Received message:', message)
         if message:
             new_message = Message(sender=current_user, recipient=recipient, message=message)
             db.session.add(new_message)
             db.session.commit()  # Commit the changes to the database
 
-            print(new_message)
+            print('saving ',new_message)
 
             socketio.emit('message', {'message': message, 'sender': current_user.username},
                          room=recipient_username)
