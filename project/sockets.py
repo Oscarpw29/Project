@@ -1,50 +1,49 @@
+from flask_socketio import join_room, emit
 from flask_login import current_user
-from flask_socketio import SocketIO, emit, join_room, disconnect
-from project import socketio
-from flask import Flask, session
-from project.models import User
+from . import socketio, db
+from .models import Message, Chat
+from flask import current_app, request
+
 
 # Assuming 'socketio' is initialized in your __init__.py
 
 @socketio.on('connect')
 def handle_connect():
-    if current_user.is_authenticated:
-        print(f'Client connected {current_user.username}')
-        join_room(current_user.username)
-    else:
-        print('Unauthorized connection')
-        disconnect()
+    print(f'Client connected with {request.sid}')
+    emit('my_response', {'data': 'Connected'})
+    print("handle_connect function is being executed!")
 
 
-@socketio.on('disconnect')
-def handle_disconnect():
-    print('Client disconnected')
+@socketio.on('join')
+def on_join(data):
+    room = data['room']
+    join_room(room)
+    print(f'{current_user.username} joined room {room}')
 
 
-# @socketio.on('message')
-# def handle_message(data):
-#     print('Received message:', data)
-#     recipient_username = data['recipient']
-#     recipient = User.query.filter_by(username=recipient_username).first()
-#     if recipient:
-#         print(f'Recipient {recipient_username} received')
-#         emit('message', {'data': data['message'], 'sender': current_user.username}, room=recipient)
-#     else:
-#         print(f'Recipient {recipient_username} not found')
+@socketio.on('client_ready')
+def handle_client_ready(data):
+    room = data['room']
+    print(f'Client in room {room} is ready to receive messages.')
+
 
 @socketio.on('message')
 def handle_message(data):
-    recipient_username = data['recipient']
+    message = data['message']
+    room = data['room']
+    chat_id = int(room.split('_')[1])
 
-    try:
-        recipient = User.query.filter_by(username=recipient_username).first()
-        if recipient:
-            print(f"Sending message to {recipient_username}")
-            emit('message', {'data': data['message'], 'sender': current_user.username}, room=recipient_username)
-            emit('message', {'data': data['message'], 'sender': current_user.username}, room=current_user.username)
-        else:
-            print(f"Recipient '{recipient_username}' not found.")
-            emit('error', {'message': 'Recipient not found.'}, room=current_user.username)
-    except Exception as e:
-        print(f"Error sending message: {e}")
-        emit('error', {'message': 'An error occurred while sending the message.'}, room=current_user.username)
+    chat = Chat.query.get_or_404(chat_id)
+    recipient = None
+    if chat.user1 == current_user:
+        recipient = chat.user2
+    elif chat.user2 == current_user:
+        recipient = chat.user1
+
+    if recipient:
+        new_message = Message(sender=current_user, recipient=recipient, message=message, chat=chat)
+        db.session.add(new_message)
+        db.session.commit()
+
+        emit('message', {'message': message, 'sender': current_user.username, 'chat_id': chat_id}, room=room)
+        print(f'Emitted message to room {room}: {message}')

@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, request, flash
+from flask import Blueprint, render_template, redirect, url_for, request, flash, session
 from flask_login import login_user, logout_user, login_required, current_user
 from .models import User
 from . import db
@@ -20,16 +20,19 @@ def login_post():
     password = request.form['password']
 
     remember = True if request.form.get('remember') else False
+    try:
+        user = User.query.filter_by(username=username).first()
 
-    user = User.query.filter_by(username=username).first()
+        if not username or not bcrypt.checkpw(password.encode('utf-8'), user.password_hash):
+            flash('Invalid username or password.')
+            return redirect(url_for('auth.login'))
 
-    if not username or not bcrypt.checkpw(password.encode('utf-8'), user.password_hash):
+        login_user(user, remember=remember)
+
+        return redirect(url_for('main.home'))
+    except:
         flash('Invalid username or password.')
         return redirect(url_for('auth.login'))
-
-    login_user(user, remember=remember)
-
-    return redirect(url_for('main.home'))
 
 
 @auth.route('/register')
@@ -67,4 +70,5 @@ def register_post():
 @login_required
 def logout():
     logout_user()
+    session.pop('_flashes', None)
     return redirect(url_for('auth.login'))

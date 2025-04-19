@@ -1,39 +1,299 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<div class="home-container">
+    <aside class="recent-chats-sidebar">
+        <h2>Recent Chats</h2>
+        <div class="recent-chats-list">
+        {% for chat_info in receent_chat_message %}
+        <a href="{{ url_for('main.chat', chat_id=chat_info.chat.id) }}" class="chat-link">
+            <div class="chat-item">
+                <div class="recipient-info">
+                    {% if chat_info.recipient %}
+                        <span>{{ chat_info.recipient.username }}</span>
+                    {% else %}
+                        <span>Unknown User</span>
+                    {% endif %}
+                </div>
+                <div class="last-message-info">
+                    {% if chat_info.last_message %}
+                        <small>{{ chat_info.last_message.sender.username }}: {{ chat_info.last_message.message|truncate(30) }} ({{ chat_info.last_message.timestamp.strftime('%Y-%m-%d %H:%M') }})</small>
+                    {% else %}
+                        <small>No messages yet</small>
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+    {% endfor %}
+            
+    </aside>
+    <main class="home-content">
+        <div class="search-bar-container">
+            <input type="text" id="search-user" placeholder="Search for a user...">
+            <button id="search-button">Search</button>
+        </div>
+        <ul id="search-results" class="search-results-list">
+            </ul>
+        <div class="start-chat-suggestion">
+            <p>Or browse all users to start a new chat:</p>
+            <ul id="user-list" class="user-list-grid">
+                {% for other_user in other_users %}
+                    <li class="user-item">
+                        <span>{{ other_user.username }}</span>
+                        <button class="start-chat-button" data-username="{{ other_user.username }}">Start Chat</button>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </main>
+</div>
 
- <h1>Chat</h1>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('search-user');
+        const searchButton = document.getElementById('search-button');
+        const searchResultsList = document.getElementById('search-results');
+        const userList = document.getElementById('user-list');
 
-    <form id="message-form">
-        <input type="text" id="recipient_input" placeholder="Enter recipient username">
-        <button type="submit">Start Chat</button>
-    </form>
+        searchButton.addEventListener('click', function() {
+            const query = searchInput.value.trim();
+            if (query) {
+                fetch(`/search_users?q=${query}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                    .then(data => {
+        searchResultsList.innerHTML = '';
+        if (data && data.results && Array.isArray(data.results) && data.results.length > 0) {
+            data.results.forEach(user => {
+                const listItem = document.createElement('li');
+                listItem.classList.add('search-result-item');
+                listItem.innerHTML = `
+                    <span>${user.username}</span>
+                    <button class="start-chat-button" data-username="${user.username}">Start Chat</button>
+                `;
+                searchResultsList.appendChild(listItem);
 
-    <div id="chat-messages"></div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    <script>
-        const socket = io();
-        const messageForm = document.getElementById('message-form');
-        const recipientInput = document.getElementById('recipient_input');
-        const chatMessages = document.getElementById('chat-messages');
-        const username = '{{ user.username }}';
-
-        messageForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const recipient = recipientInput.value;
-            if (recipient) {
-                // Redirect to the chat page with the recipient username
-                window.location.href = '/chat/' + recipient;
+                // Get the newly created button
+                const startChatButton = listItem.querySelector('.start-chat-button');
+                // Attach the event listener to this specific button
+                startChatButton.addEventListener('click', function() {
+                    const recipientUsername = this.dataset.username;
+                    startNewChat(recipientUsername);
+                });
+            });
+        } else {
+            const listItem = document.createElement('li');
+            listItem.classList.add('no-results');
+            listItem.textContent = 'No users found.';
+            searchResultsList.appendChild(listItem);
+    }
+})
+                .catch(error => {
+                    console.error('Error searching users:', error);
+                    alert('Failed to search for users.');
+                });
+            } else {
+                searchResultsList.innerHTML = '';
             }
         });
 
-        socket.on('message', (data) => {
-            const messageItem = document.createElement('li');
-            messageItem.textContent = `${data.sender}: ${data.data}`;
-            chatMessages.appendChild(messageItem);
+        const startChatButtonsInitial = document.querySelectorAll('.start-chat-button[data-username]'); // Select initial buttons
+
+        startChatButtonsInitial.forEach(button => {
+            button.addEventListener('click', function() {
+                const recipientUsername = this.dataset.username;
+                startNewChat(recipientUsername);
+            });
         });
-    </script>
 
 
+        function startNewChat(recipientUsername) {
+            fetch('/new_chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ recipient_username: recipientUsername }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                } else if (data.error) {
+                    alert(`Error starting chat: ${data.error}`);
+                } else {
+                    console.warn('Unexpected response:', data);
+                    alert('Failed to start chat.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to connect to the server.');
+            });
+        }
+    });
+</script>
+
+<style>
+    .home-container {
+        display: flex;
+        max-width: 960px;
+        margin: 20px auto;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        overflow: hidden;
+        height: 600px; /* Adjust as needed */
+    }
+
+    .recent-chats-sidebar {
+        width: 30%;
+        background-color: #f8f8f8;
+        border-right: 1px solid #eee;
+        padding: 15px;
+        overflow-y: auto;
+    }
+
+    .recent-chats-sidebar h2 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        text-align: center;
+    }
+
+    .chat-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .chat-item {
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .chat-item:last-child {
+        border-bottom: none;
+    }
+
+    .chat-link {
+        display: block;
+        text-decoration: none;
+        color: #333;
+        padding: 8px 10px;
+    }
+
+    .chat-link:hover {
+        background-color: #f0f0f0;
+    }
+
+    .chat-link small {
+        display: block;
+        color: #777;
+        font-size: 0.8em;
+    }
+
+    .no-chats {
+        color: #777;
+        text-align: center;
+        padding: 10px;
+    }
+
+    .home-content {
+        flex-grow: 1;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .search-bar-container {
+        display: flex;
+        margin-bottom: 20px;
+    }
+
+    #search-user {
+        flex-grow: 1;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px 0 0 5px;
+        outline: none;
+    }
+
+    #search-button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 0 5px 5px 0;
+        cursor: pointer;
+    }
+
+    #search-button:hover {
+        background-color: #0056b3;
+    }
+
+    .search-results-list {
+        list-style: none;
+        padding: 0;
+        margin-top: 10px;
+    }
+
+    .search-result-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 10px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .search-result-item:last-child {
+        border-bottom: none;
+    }
+
+    .search-result-item span {
+        flex-grow: 1;
+    }
+
+    .search-results-list .start-chat-button {
+        margin-left: 10px;
+    }
+
+    .search-results-list .no-results {
+        color: #777;
+        padding: 10px;
+        text-align: center;
+    }
+
+    .start-chat-suggestion {
+        margin-top: 30px;
+    }
+
+    .user-list-grid {
+        list-style: none;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .user-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        text-align: center;
+    }
+
+    .user-item span {
+        margin-bottom: 5px;
+    }
+
+    .user-item .start-chat-button {
+        width: 100%;
+    }
+</style>
 {% endblock %}

@@ -13,10 +13,25 @@ class User(UserMixin, db.Model):
     last_seen = db.Column(db.DateTime)
     bio = db.Column(db.String(255))
 
+class Chat(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user1_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user2_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    chat_name = db.Column(db.String(255))
+
+    user1 = db.relationship('User', foreign_keys=[user1_id])
+    user2 = db.relationship('User', foreign_keys=[user2_id])
+    messages = db.relationship('Message', backref='chat', lazy='dynamic', foreign_keys='Message.chat_id')
+
+    def __repr__(self):
+        return '<Chat %r -r>' % (self.user1_id, self.user2_id)
+
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    chat_id = db.Column(db.Integer, db.ForeignKey('chat.id'))
     message = db.Column(db.String(140))
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 

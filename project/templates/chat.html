@@ -1,49 +1,190 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<div class="chat-container">
+    <div class="chat-header">
+        <h1>Chat with {{ recipient.username }}</h1>
+        </div>
+    <div id="messages" class="chat-messages">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="message-container {% if message.sender == user %}sent{% else %}received{% endif %}">
+                    <div class="message-bubble">
+                        <p>{{ message.message }}</p>
+                        <small class="message-timestamp">{{ message.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="no-messages">No messages yet. Start the conversation!</p>
+        {% endif %}
+    </div>
+    <div class="chat-input-area">
+        <form id="send-message-form">
+            <input type="text" id="message-input" placeholder="Type your message...">
+            <button type="submit">Send</button>
+        </form>
+    </div>
+</div>
 
-    <h1>Chat with {{ recipient.username }}</h1>
-
-    <div id="chat-messages">
-        {% for message in messages %}
-            <li>
-                {% if message.sender == current_user %}
-                    You: {{ message.message }}
-                {% else %}
-                    {{ message.sender.username }}: {{ message.message }}
-                {% endif %}
-            </li>
-        {% endfor %}
-    </div> 
-
-    <form id="message-form" method="POST">
-        <label for="message-input"></label><input type="text" id="message-input" placeholder="Type your message">
-        <button type="submit">Send</button>
-    </form>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    <script>
-        const socket = io();
-        const messageForm = document.getElementById('message-form');
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function() {
+        const socket = io.connect('http://127.0.0.1:5002'); // Use explicit IP and port
+        const chatId = "{{ chat_id }}";
+        const messagesContainer = document.getElementById('messages');
+        const sendMessageForm = document.getElementById('send-message-form');
         const messageInput = document.getElementById('message-input');
-        const chatMessages = document.getElementById('chat-messages');
-        const recipientUsername = '{{ recipient.username }}'; 
 
-        socket.emit('join', recipientUsername); 
+        socket.on('connect', function() {
+            console.log('WebSocket connected!');
+            socket.emit('join', { room: `chat_${chatId}` });
+            socket.emit('client_ready', { room: `chat_${chatId}` }); // New custom event
+        });
 
-        messageForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const message = messageInput.value;
+        socket.on('message', function(data) {
+        console.log('Received WebSocket message:', data);
+        if (data.chat_id === parseInt(chatId)) {
+            const messagesContainer = document.getElementById('messages');
+            const messageContainer = document.createElement('div');
+            messageContainer.classList.add('message-container');
+            if (data.sender === "{{ user.username }}") {
+                messageContainer.classList.add('sent');
+            } else {
+                messageContainer.classList.add('received');
+            }
+            const messageBubble = document.createElement('div');
+            messageBubble.classList.add('message-bubble');
+            const messageParagraph = document.createElement('p');
+            messageParagraph.textContent = data.message;
+            const timestampSmall = document.createElement('small');
+            timestampSmall.classList.add('message-timestamp');
+            const now = new Date();
+            const formattedTime = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+            timestampSmall.textContent = formattedTime;
+
+            messageBubble.appendChild(messageParagraph);
+            messageBubble.appendChild(timestampSmall);
+            messageContainer.appendChild(messageBubble);
+            messagesContainer.appendChild(messageContainer);
+            scrollToBottom();
+        }
+});
+
+
+        sendMessageForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const message = messageInput.value.trim();
             if (message) {
-                socket.emit('message', { message: message, sender: '{{ user.username }}', recipient: recipientUsername }); 
+                const dataToSend = { message: message, room: `chat_${chatId}` };
+                socket.emit('message', dataToSend);
                 messageInput.value = '';
             }
         });
 
-        socket.on('message', (data) => {
-            const messageItem = document.createElement('li');
-            messageItem.textContent = `${data.sender}: ${data.data}`;
-            chatMessages.appendChild(messageItem);
-        });
-    </script>
+        function scrollToBottom() {
+            const messagesContainer = document.getElementById('messages');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        scrollToBottom(); // Scroll to the latest messages on load
+    });
+</script>
+<style>
+    .chat-container {
+        max-width: 800px;
+        margin: 20px auto;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        height: 600px; /* Adjust as needed */
+    }
+
+    .chat-header {
+        background-color: #f8f8f8;
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        text-align: center;
+    }
+
+    .chat-messages {
+        flex-grow: 1;
+        padding: 15px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .message-container {
+        margin-bottom: 10px;
+        display: flex;
+        clear: both; /* Prevent floating issues */
+    }
+
+    .sent {
+        justify-content: flex-end;
+    }
+
+    .received {
+        justify-content: flex-start;
+    }
+
+    .message-bubble {
+        background-color: #e0f7fa; /* Light blue for received */
+        color: #333;
+        padding: 10px 15px;
+        border-radius: 10px;
+        max-width: 70%;
+        word-wrap: break-word;
+    }
+
+    .sent .message-bubble {
+        background-color: #dcf8c6; /* Light green for sent */
+        color: #333;
+    }
+
+    .message-timestamp {
+        display: block;
+        font-size: 0.8em;
+        color: #777;
+        margin-top: 5px;
+    }
+
+    .chat-input-area {
+        padding: 15px;
+        border-top: 1px solid #eee;
+    }
+
+    #send-message-form {
+        display: flex;
+    }
+
+    #message-input {
+        flex-grow: 1;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px 0 0 5px;
+        outline: none;
+    }
+
+    #send-message-form button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 0 5px 5px 0;
+        cursor: pointer;
+    }
+
+    #send-message-form button:hover {
+        background-color: #0056b3;
+    }
+
+    .no-messages {
+        text-align: center;
+        color: #777;
+        padding: 20px;
+    }
+</style>
 {% endblock %}

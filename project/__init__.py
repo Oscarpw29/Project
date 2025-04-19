@@ -4,10 +4,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO
 
 db = SQLAlchemy()
-
-SERVER_HOST = "127.0.0.1"
-SERVER_PORT = 5002
-
 socketio = SocketIO()
 
 def create_app():
@@ -31,15 +27,15 @@ def create_app():
     # blueprint for auth routes in app
     from .auth import auth as auth_blueprint
     app.register_blueprint(auth_blueprint)
-
     # blueprint for main routes in app
     from .main import main as main_blueprint
     app.register_blueprint(main_blueprint)
 
     socketio.init_app(app)
-
     print("socketio initialized")
-
     from . import sockets
-
     return app
+
+if __name__ == '__main__':
+    app = create_app()
+    socketio.run(app, debug=True, port=5002)
