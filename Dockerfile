@@ -19,4 +19,4 @@ RUN pip install -r requirements.txt
 
 EXPOSE 3000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "run.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "python3 run.py"]
