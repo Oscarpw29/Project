@@ -2,6 +2,7 @@ from flask_login import current_user, UserMixin
 from . import db
 from datetime import datetime
 
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
@@ -11,7 +12,9 @@ class User(UserMixin, db.Model):
     access_level = db.Column(db.Integer)
     profilePicture = db.Column(db.String(255))
     last_seen = db.Column(db.DateTime)
-    bio = db.Column(db.String(255))
+    last_chat_open_id = db.Column(db.Integer, db.ForeignKey('chat.id'), nullable=True)
+    last_chat_open = db.relationship('Chat', foreign_keys=[last_chat_open_id], backref=db.backref('last_opened_by'))
+
 
 class Chat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -26,6 +29,7 @@ class Chat(db.Model):
 
     def __repr__(self):
         return '<Chat %r -r>' % (self.user1_id, self.user2_id)
+
 
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
