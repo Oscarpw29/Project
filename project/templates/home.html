@@ -5,7 +5,7 @@
     <aside class="recent-chats-sidebar">
         <h2>Recent Chats</h2>
         <div class="recent-chats-list">
-        {% for chat_info in receent_chat_message %}
+        {% for chat_info in recent_chat_message %}
         <a href="{{ url_for('main.chat', chat_id=chat_info.chat.id) }}" class="chat-link">
             <div class="chat-item">
                 <div class="recipient-info">
@@ -25,7 +25,7 @@
             </div>
         </a>
     {% endfor %}
-            
+    </div>
     </aside>
     <main class="home-content">
         <div class="search-bar-container">
@@ -49,94 +49,12 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const searchInput = document.getElementById('search-user');
-        const searchButton = document.getElementById('search-button');
-        const searchResultsList = document.getElementById('search-results');
-        const userList = document.getElementById('user-list');
+    const currentUserId = "{{ current_user.id }}";
+    const currentUsername = "{{ current_user.username }}";
 
-        searchButton.addEventListener('click', function() {
-            const query = searchInput.value.trim();
-            if (query) {
-                fetch(`/search_users?q=${query}`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                })
-                .then(response => response.json())
-                    .then(data => {
-        searchResultsList.innerHTML = '';
-        if (data && data.results && Array.isArray(data.results) && data.results.length > 0) {
-            data.results.forEach(user => {
-                const listItem = document.createElement('li');
-                listItem.classList.add('search-result-item');
-                listItem.innerHTML = `
-                    <span>${user.username}</span>
-                    <button class="start-chat-button" data-username="${user.username}">Start Chat</button>
-                `;
-                searchResultsList.appendChild(listItem);
-
-                // Get the newly created button
-                const startChatButton = listItem.querySelector('.start-chat-button');
-                // Attach the event listener to this specific button
-                startChatButton.addEventListener('click', function() {
-                    const recipientUsername = this.dataset.username;
-                    startNewChat(recipientUsername);
-                });
-            });
-        } else {
-            const listItem = document.createElement('li');
-            listItem.classList.add('no-results');
-            listItem.textContent = 'No users found.';
-            searchResultsList.appendChild(listItem);
-    }
-})
-                .catch(error => {
-                    console.error('Error searching users:', error);
-                    alert('Failed to search for users.');
-                });
-            } else {
-                searchResultsList.innerHTML = '';
-            }
-        });
-
-        const startChatButtonsInitial = document.querySelectorAll('.start-chat-button[data-username]'); // Select initial buttons
-
-        startChatButtonsInitial.forEach(button => {
-            button.addEventListener('click', function() {
-                const recipientUsername = this.dataset.username;
-                startNewChat(recipientUsername);
-            });
-        });
-
-
-        function startNewChat(recipientUsername) {
-            fetch('/new_chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ recipient_username: recipientUsername }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.redirect_url) {
-                    window.location.href = data.redirect_url;
-                } else if (data.error) {
-                    alert(`Error starting chat: ${data.error}`);
-                } else {
-                    console.warn('Unexpected response:', data);
-                    alert('Failed to start chat.');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to connect to the server.');
-            });
-        }
-    });
 </script>
+
+<script src="/dist/home.js"></script>
 
 <style>
     .home-container {

@@ -1,0 +1,8 @@
+{% for msg in messages %}
+    <div class="message-container {% if msg.sender.id == current_user.id %}sent{% else %}received{% endif %}">
+        <div class="message-bubble">
+            <p>{{ msg.message }}</p>
+            <small class="message-timestamp">{{ msg.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+        </div>
+    </div>
+{% endfor %}

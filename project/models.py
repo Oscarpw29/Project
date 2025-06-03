@@ -12,14 +12,14 @@ class User(UserMixin, db.Model):
     profilePicture = db.Column(db.String(255))
     last_seen = db.Column(db.DateTime)
     bio = db.Column(db.String(255))
-
+    public_e2e_key = db.Column(db.Text, nullable=True)
 class Chat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user1_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user2_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     chat_name = db.Column(db.String(255))
-
+    chat_type = db.Column(db.String(20))
     user1 = db.relationship('User', foreign_keys=[user1_id])
     user2 = db.relationship('User', foreign_keys=[user2_id])
     messages = db.relationship('Message', backref='chat', lazy='dynamic', foreign_keys='Message.chat_id')
@@ -32,7 +32,7 @@ class Message(db.Model):
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     chat_id = db.Column(db.Integer, db.ForeignKey('chat.id'))
-    message = db.Column(db.String(140))
+    message = db.Column(db.String(500))
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 
     sender = db.relationship('User', foreign_keys=[sender_id])
