@@ -9,9 +9,8 @@ function arrayBufferToBase64(buffer){
     }
     return window.btoa(binary);
 }
-// project/static/js/chat.js (and home.js if separate)
+
 function base64ToArrayBuffer(base64) {
-    // ... (your existing console.logs and null/empty checks) ...
 
     try {
         const binary_string = window.atob(base64);
@@ -22,11 +21,7 @@ function base64ToArrayBuffer(base64) {
             bytes[i] = binary_string.charCodeAt(i);
         }
 
-        // --- THIS IS THE CRITICAL CHANGE ---
         return bytes; // <--- Return the Uint8Array instance directly
-        // --- NOT ---
-        // return bytes.buffer; // This returns the underlying ArrayBuffer
-        // --- END CRITICAL CHANGE ---
 
     } catch (e) {
         console.error("[base64ToArrayBuffer] ERROR: Exception during decoding or buffer creation:", e);
@@ -81,18 +76,8 @@ async function getClientE2EPrivateKey(userId){
     return null;
 }
 
-// project/static/js/chat.js (within decryptMessageE2E function)
-
 async function decryptMessageE2E(ciphertextBuffer, nonceBuffer, sharedSecretBuffer) {
     await sodium.ready;
-    console.log("--- ATTEMPTING DECRYPTMESSAGEE2E ---"); // NEW LOG
-    console.log("Ciphertext Buffer:", ciphertextBuffer, "Length:", ciphertextBuffer ? ciphertextBuffer.byteLength : null); // NEW LOG
-    console.log("Nonce Buffer:", nonceBuffer, "Length:", nonceBuffer ? nonceBuffer.byteLength : null); // NEW LOG
-    console.log("Shared Secret Buffer (last 5 bytes):", sharedSecretBuffer ? sharedSecretBuffer.slice(-5) : null, "Length:", sharedSecretBuffer ? sharedSecretBuffer.byteLength : null); // NEW LOG
-    console.log("Expected Nonce Length:", sodium.crypto_secretbox_NONCEBYTES); // NEW LOG
-    console.log("Expected Ciphertext Min Length (MACBYTES):", sodium.crypto_secretbox_MACBYTES); // NEW LOG
-
-    // --- NEW/CHANGED: Explicit Type and Length Checks BEFORE calling libsodium ---
     if (!(ciphertextBuffer instanceof Uint8Array) || ciphertextBuffer.byteLength < sodium.crypto_secretbox_MACBYTES) {
         console.error("DECRYPT_E2E_ERROR: Invalid ciphertextBuffer type or length.", ciphertextBuffer);
         return "[Decryption Failed: Invalid Ciphertext]"; // Return error message
@@ -105,8 +90,6 @@ async function decryptMessageE2E(ciphertextBuffer, nonceBuffer, sharedSecretBuff
         console.error("DECRYPT_E2E_ERROR: Invalid sharedSecretBuffer type or length.", sharedSecretBuffer);
         return "[Decryption Failed: Invalid Shared Secret]"; // Return error message
     }
-    // --- END NEW/CHANGED ---
-
 
     try {
         const decrypted = sodium.crypto_secretbox_open_easy(
@@ -117,8 +100,6 @@ async function decryptMessageE2E(ciphertextBuffer, nonceBuffer, sharedSecretBuff
         console.log("Decryption successful (inside decryptMessageE2E)!");
         return sodium.to_string(decrypted);
     } catch (e) {
-        // --- CRITICAL: Log the exact error thrown by crypto_secretbox_open_easy ---
-        console.error("DECRYPT_E2E_ERROR: crypto_secretbox_open_easy threw an exception:", e);
         return "[Decryption Failed: " + e.message + "]"; // Return error message with details
     }
 }
@@ -144,74 +125,47 @@ const e2eSessions = {};
 
 const chatSharedSecrets = new Map();
 
-// project/static/js/chat.js (within establishE2ESession function)
-
 async function establishE2ESession(chatId, recipientUserId) {
     await sodium.ready;
-    console.log(`[establishE2ESession] START - chat ID: ${chatId}, recipient ID: ${recipientUserId}`); // NEW CRITICAL LOG
-    console.log(`[establishE2ESession] Type of chatId: ${typeof chatId}, Type of recipientUserId: ${typeof recipientUserId}`); // NEW LOG
-
 
     // 1. Check if session already established for this chat
-    console.log(`[establishE2ESession] Checking if session already in map for chat ${chatId}. Map size: ${chatSharedSecrets.size}`); // NEW LOG
 
     if (chatSharedSecrets.has(chatId)) {
         const existingSecret = chatSharedSecrets.get(chatId);
-        console.log(`[establishE2ESession] Session already established for chat ${chatId} (retrieved from map). Length: ${existingSecret.byteLength}`);
         return existingSecret; // Return existing shared secret
     }
-    console.log(`[establishE2ESession] Session NOT in map. Proceeding with key derivation.`); // NEW LOG
-
-    console.log("[establishE2ESession] Attempting to get sender's private key from localStorage."); // NEW LOG
 
     // 2. Get sender's private key (from localStorage)
     const senderKeysString = localStorage.getItem(`libsodium_e2e_keys_${currentUserId}`);
     if (!senderKeysString) {
-        console.error("ERROR: [establishE2ESession] Sender's private E2E key not found locally. Cannot establish session.");
         alert("Your private E2E key is missing. Please log in again or re-generate keys.");
         return null;
     }
     const senderKeys = JSON.parse(senderKeysString);
-    console.log("[establishE2ESession] Sender's private key loaded from localStorage (parsed)."); // NEW LOG
 
     const senderPrivateKey = base64ToArrayBuffer(senderKeys.privateKey);
-    console.log("[establishE2ESession] Sender Private Key Loaded (Base64):", arrayBufferToBase64(senderPrivateKey)); // NEW LOG
-    console.log("Sender Private Key Length:", senderPrivateKey.byteLength);
 
     if (senderPrivateKey.byteLength !== sodium.crypto_box_SECRETKEYBYTES) {
-        console.error(`ERROR: [establishE2ESession] Invalid sender private key length: ${senderPrivateKey.byteLength}. Expected ${sodium.crypto_box_SECRETKEYBYTES}.`);
         alert("Invalid sender private key. Session cannot be established.");
         return null;
     }
 
     // 3. Get recipient's public key (from server)
-    console.log(`[establishE2ESession] Fetching public key for recipient: ${recipientUserId}`);
     const recipientPublicKeyBase64 = await getE2EPublicKey(recipientUserId);
     if (!recipientPublicKeyBase64) {
-        console.error("ERROR: [establishE2ESession] Recipient's public E2E key not found or fetch failed. Cannot establish session.");
         alert("Recipient's public E2E key is missing. Please ensure they have logged in and generated keys.");
         return null;
     }
     const recipientPublicKeyBuffer = base64ToArrayBuffer(recipientPublicKeyBase64);
-    console.log("Recipient Public Key Loaded (Base64):", arrayBufferToBase64(recipientPublicKeyBuffer)); // NEW LOG
-    console.log("Recipient Public Key Length:", recipientPublicKeyBuffer.byteLength);
 
     if (recipientPublicKeyBuffer.byteLength !== sodium.crypto_box_PUBLICKEYBYTES) {
-        console.error(`ERROR: [establishE2ESession] Invalid recipient public key length: ${recipientPublicKeyBuffer.byteLength}. Expected ${sodium.crypto_box_PUBLICKEYBYTES}.`);
         alert("Invalid recipient public key received. Session cannot be established.");
         return null;
     }
 
     // 4. Derive shared secret key
     const sharedSecret = sodium.crypto_box_beforenm(recipientPublicKeyBuffer, senderPrivateKey);
-
-    console.log(`[establishE2ESession] DERIVED Shared Secret for chat ${chatId} (Base64): ${arrayBufferToBase64(sharedSecret)}`); // NEW LOG
-    console.log(`[establishE2ESession] Derived Shared Secret Length: ${sharedSecret.byteLength}`); // NEW LOG
-
     chatSharedSecrets.set(chatId, sharedSecret);
-    console.log(`[establishE2ESession] Shared secret STORED in map for chat ${chatId}.`); // NEW LOG
-    console.log(`[establishE2ESession] Map size after store: ${chatSharedSecrets.size}`); // NEW LOG
-
     return sharedSecret; // This should be the successful return
 }
 
@@ -239,7 +193,6 @@ document.addEventListener('DOMContentLoaded', async function(){
 
 
     if (currentChatType === 'secret'){
-        console.log('DEBUG: currentChatType is "secret". Attempting establishE2ESession')
         const sessionEstablishedResult = await establishE2ESession(chatId, recipientId)
 
         sharedSecretBufferForPage = sessionEstablishedResult
@@ -262,7 +215,7 @@ document.addEventListener('DOMContentLoaded', async function(){
 
     socket.on('message', async function (data) { // Ensure this is async!
         console.log('--- REAL-TIME: Client received WebSocket message ---');
-        console.log('REAL-TIME: Raw data received by client:', data); // CRITICAL: See the full payload
+        console.log('REAL-TIME: Raw data received by client:', data);
         let sharedSecretBuffer = chatSharedSecrets.get(data.chat_id);
 
         // Check if the message is for the currently active chat
@@ -272,9 +225,7 @@ document.addEventListener('DOMContentLoaded', async function(){
         if (data.chat_id === parseInt(chatId)) {
             let displayContent = data.message; // Holds the raw message from server (plaintext or object)
             if (data.chat_type === 'secret') {
-                console.log('DEBUG: currentChatType is "secret". Attempting establishE2ESession.');
-                console.log('REAL-TIME: **Current chatSharedSecrets map contents (before get):**', chatSharedSecrets);
-                console.log('REAL-TIME: **Key being looked up in map:**', data.chat_id);
+
                 sharedSecretBuffer = sharedSecretBufferForPage
 
                 if (!sharedSecretBuffer) {
@@ -283,7 +234,6 @@ document.addEventListener('DOMContentLoaded', async function(){
             }
 
                 console.log('Debug: Shared Secret Buffer found:', !!sharedSecretBuffer);
-
 
                 // Check if data.message is the object {ciphertext: ..., nonce: ...}
                 // It should be if server emits Python dict directly.
@@ -303,10 +253,6 @@ document.addEventListener('DOMContentLoaded', async function(){
                     incomingMessageObject = data.message
                 }
 
-                console.log('REAL-TIME: Inspecting incomingMessageObject. Keys:', Object.keys(incomingMessageObject)); // NEW LOG
-                console.log('REAL-TIME: incomingMessageObject.ciphertext value:', incomingMessageObject.ciphertext); // NEW LOG
-                console.log('REAL-TIME: incomingMessageObject.nonce value:', incomingMessageObject.nonce); // NEW LOG
-
 
                 const incomingCiphertext = incomingMessageObject.ciphertext;
                 const incomingNonce = incomingMessageObject.nonce;
@@ -316,19 +262,13 @@ document.addEventListener('DOMContentLoaded', async function(){
                     try {
                         const ciphertextBuffer = base64ToArrayBuffer(incomingCiphertext);
                         const nonceBuffer = base64ToArrayBuffer(incomingNonce);
-                        console.log('REAL-TIME: Ciphertext Buffer:', ciphertextBuffer, 'Length:', ciphertextBuffer ? ciphertextBuffer.byteLength : null);
-                        console.log('REAL-TIME: Nonce Buffer:', nonceBuffer, 'Length:', nonceBuffer ? nonceBuffer.byteLength : null);
-                        console.log('REAL-TIME: Shared Secret Buffer:', sharedSecretBuffer, 'Length:', sharedSecretBuffer ? sharedSecretBuffer.byteLength : null);
 
-
-                        console.log('REAL-TIME: Calling decryptMessageE2E with:', incomingCiphertext, incomingNonce, sharedSecretBuffer);
                         const decrypted = await decryptMessageE2E(
                             base64ToArrayBuffer(incomingCiphertext),
                             base64ToArrayBuffer(incomingNonce),
                             sharedSecretBufferForPage
                         );
                         displayContent = decrypted;
-                        console.log('REAL-TIME: Decryption SUCCESS! Decrypted content:', displayContent);
                     } catch (e) {
                         displayContent = "[Real-time Decryption Failed]";
                         console.error("ERROR: decryptMessageE2E threw an exception during real-time receive:", e); // CRITICAL: This is the exact error
@@ -419,9 +359,6 @@ document.addEventListener('DOMContentLoaded', async function(){
             let messageToSend = message;
 
             if (currentChatType === 'secret') {
-                console.log('--- SEND MESSAGE E2E ENCRYPTION ATTEMPT ---'); // NEW LOG
-                console.log('SEND: Current chat ID:', chatId); // NEW LOG
-                console.log('SEND: Value of chatSharedSecrets map:', chatSharedSecrets); // NEW LOG: Check the map itself
 
                 const sharedSecretBuffer = chatSharedSecrets.get(chatId);
                 if (!sharedSecretBuffer) {
