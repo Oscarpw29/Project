@@ -4,10 +4,10 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO
 
 db = SQLAlchemy()
-socketio = SocketIO()
+socketio = SocketIO(async_mode='gevent')
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder='../dist', static_url_path='/dist')
 
     app.config['SECRET_KEY'] = '<KEY>'
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite'
